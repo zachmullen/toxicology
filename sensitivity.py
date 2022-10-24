@@ -1,8 +1,9 @@
 import math
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import pingouin as pg
+import plotly.express as px
+
 
 @st.cache
 def df_from_file(file) -> pd.DataFrame:
@@ -11,12 +12,18 @@ def df_from_file(file) -> pd.DataFrame:
     else:
         return pd.read_excel(file)
 
+
+def get_color_by_value(column_name: str, dict_df: pd.DataFrame) -> str:
+    return dict_df[dict_df['Field Name'] == column_name].iloc[0].Category
+
+
 def run_prcc(dict_df: pd.DataFrame, data_df: pd.DataFrame, output_name: str) -> dict[str, float]:
     input_names = dict_df.loc[dict_df['Type'] == 'Input']['Field Name'].to_list()
     return {
         input_name: float(pg.partial_corr(data_df, input_name, output_name, method='spearman').r)
         for input_name in input_names
     }
+
 
 st.title('Toxicology sensitivity analysis')
 
@@ -39,7 +46,11 @@ if data_file and dict_file:
     if output_name:
         with st.spinner(f'Running PRCC on {output_name}'):
             results = run_prcc(dict_df, data_df, output_name)
-            result_list = [[k, v] for k, v in results.items() if not math.isnan(v)]
-            plot_df = pd.DataFrame(result_list, columns=['Parameter', 'PRCC'])
-            fig = px.bar(plot_df, x='Parameter', y='PRCC', title='PRCC results')
-            st.plotly_chart(fig)
+            result_list = [
+                [k, v, get_color_by_value(k, dict_df)]
+                for k, v in results.items() if not math.isnan(v)
+            ]
+            plot_df = pd.DataFrame(result_list, columns=['Parameter', 'PRCC', 'Category'])
+            fig = px.bar(plot_df, x='Parameter', y='PRCC', title=f'PRCC results: {output_name}', color='Category')
+            fig.update_layout(xaxis_categoryorder='total descending')
+            fig
