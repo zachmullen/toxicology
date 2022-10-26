@@ -5,7 +5,7 @@ import pingouin as pg
 import plotly.express as px
 
 
-@st.cache
+@st.cache(show_spinner=False)
 def df_from_file(file) -> pd.DataFrame:
     if file.name.endswith('.csv'):
         return pd.read_csv(file)
@@ -17,6 +17,7 @@ def get_color_by_value(column_name: str, dict_df: pd.DataFrame) -> str:
     return dict_df[dict_df['Field Name'] == column_name].iloc[0].Category
 
 
+@st.cache(show_spinner=False)
 def run_prcc(dict_df: pd.DataFrame, data_df: pd.DataFrame, output_name: str) -> dict[str, float]:
     input_names = dict_df.loc[dict_df['Type'] == 'Input']['Field Name'].to_list()
     return {
