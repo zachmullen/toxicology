@@ -1,4 +1,4 @@
 openpyxl
-plotly
 pingouin
+plotly
 streamlit
