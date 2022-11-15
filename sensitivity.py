@@ -9,7 +9,7 @@ from streamlit_plotly_events import plotly_events
 from typing import Iterable
 
 # TODO next version of st.cache will allow passing a custom message to show_spinner, use that instead.
-@st.cache(show_spinner=False)
+@st.cache(show_spinner=False, allow_output_mutation=True)
 def df_from_file(file) -> pd.DataFrame:
     if file.name.endswith('.csv'):
         return pd.read_csv(file)
@@ -72,6 +72,12 @@ if data_file and dict_file:
         # 3. Find all output columns
         output_cols = dict_df.loc[dict_df['Type'] == 'Output']['Field Name']
 
+    with st.expander('Data dictionary'):
+        dict_df
+
+    with st.expander('Sample data rows'):
+        data_df[:10]
+
     # Compute PRCC for all input / output combinations
     heatmap = compute_prcc_heatmap(data_df, varying_input_cols, output_cols)
     fig = px.imshow(
@@ -79,6 +85,7 @@ if data_file and dict_file:
         labels=dict(x='Output', y='Input', color='|PRCC|'),
         x=output_cols,
         y=varying_input_cols,
+        color_continuous_scale=[(0, 'white'), (1, 'red')]
     )
     selected_points = plotly_events(fig, override_height=45 * len(varying_input_cols))
 
