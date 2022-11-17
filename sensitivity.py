@@ -1,5 +1,6 @@
 from itertools import product
 import math
+from pathlib import Path
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -51,26 +52,44 @@ def get_color_by_value(column_name: str, dict_df: pd.DataFrame) -> str:
 st.set_page_config(layout="wide")
 st.title('Toxicology sensitivity analysis')
 
-upload_container = st.empty()
-with upload_container.container():
-    dict_file = st.file_uploader('Select data dictionary', type=['csv', 'xlsx'])
-    data_file = st.file_uploader('Select data', type=['csv', 'xlsx'])
+if not st.session_state.get('dataframes'):
+    upload_container = st.empty()
+    with upload_container.container():
+        st.markdown('#### Provide your own data')
+        dict_file = st.file_uploader('Select data dictionary', type=['csv', 'xlsx'])
+        data_file = st.file_uploader('Select data', type=['csv', 'xlsx'])
 
-if data_file and dict_file:
-    upload_container.empty()
+        st.markdown('#### Or explore our built-in example data')
+        load_example_data = st.button('Load example data')
 
-    with st.spinner('Ingesting data...'):
-        data_df = df_from_file(data_file)
-        dict_df = df_from_file(dict_file)
+    if load_example_data:
+        upload_container.empty()
 
-        # 1. Find all input columns
-        input_cols = dict_df.loc[dict_df['Type'] == 'Input']['Field Name']
+        with st.spinner('Loading sample data...'):
+            st.session_state.dataframes = (
+                pd.read_excel(Path(__file__).parent / 'SampleData.xlsx'),
+                pd.read_excel(Path(__file__).parent / 'SampleDict.xlsx')
+            )
+    elif data_file and dict_file:
+        upload_container.empty()
 
-        # 2. Ignore input columns that have the same value in every row
-        varying_input_cols = [col for col in input_cols if data_df[col].nunique() > 1]
+        with st.spinner('Ingesting data...'):
+            st.session_state.dataframes = (
+                df_from_file(data_file),
+                df_from_file(dict_file)
+            )
 
-        # 3. Find all output columns
-        output_cols = dict_df.loc[dict_df['Type'] == 'Output']['Field Name']
+if st.session_state.get('dataframes'):
+    data_df, dict_df = st.session_state.dataframes
+
+    # 1. Find all input columns
+    input_cols = dict_df.loc[dict_df['Type'] == 'Input']['Field Name']
+
+    # 2. Ignore input columns that have the same value in every row
+    varying_input_cols = [col for col in input_cols if data_df[col].nunique() > 1]
+
+    # 3. Find all output columns
+    output_cols = dict_df.loc[dict_df['Type'] == 'Output']['Field Name']
 
     with st.expander('Data dictionary'):
         dict_df
